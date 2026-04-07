@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>RepoLens | Chat</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .markdown-body ul { padding-left: 1.5rem; color: white; }
+        .markdown-body strong { color: #0d6efd; } /* Makes bold text blue-ish */
+    </style>
+</head>
+<body class="bg-dark text-white">
+    <div class="container mt-4" style="padding-bottom: 120px;">
+        <h3>🔍 RepoLens Chat</h3>
+        <hr class="border-secondary">
+
+        <div th:if="${response}" class="card bg-secondary mb-3 shadow">
+            <div class="card-header bg-primary text-white">
+                <strong>You asked:</strong> <span th:text="${question}"></span>
+            </div>
+            <div class="card-body">
+                <div id="content" th:data-raw="${response}"></div>
+            </div>
+        </div>
+
+        <form th:action="@{/api/chat}" method="post" class="fixed-bottom p-4 bg-dark border-top border-secondary">
+            <div class="container">
+                <div class="input-group">
+                    <input type="text" name="userPrompt" class="form-control" placeholder="Ask about the code..." required autofocus>
+                    <button class="btn btn-success" type="submit">Ask Agent</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Check if the element exists (only true after first question)
+        const contentDiv = document.getElementById('content');
+        if (contentDiv) {
+            const rawText = contentDiv.getAttribute('data-raw');
+            // Convert Markdown to HTML o problematic as to just take the response as it is
+            contentDiv.innerHTML = marked.parse(rawText);
+        }
+    </script>
+</body>
+</html>
