@@ -1,0 +1,17 @@
+services:
+  pgvector:
+    image: ankane/pgvector:latest
+    container_name: pgvector
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-repolens}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-repolens}
+      POSTGRES_DB: ${DB_NAME:-repolens}
+    # Host 5433 avoids clash with local Windows Postgres on 5432.
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgvector-data:/var/lib/postgresql/data
+
+volumes:
+  pgvector-data:

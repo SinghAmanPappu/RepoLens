@@ -1,57 +1,55 @@
 # 🔍 RepoLens: AI-Powered Codebase Architect
 
-RepoLens is an advanced RAG (Retrieval-Augmented Generation) application built with Spring Boot 3.2 and Java 21. It transforms static GitHub repositories into interactive knowledge bases, allowing developers to perform semantic queries and receive architectural insights directly from Google Gemini AI.
+RepoLens transforms **any** GitHub repo into an interactive knowledge base. It indexes source code into pgvector and answers architecture questions with Google Gemini — grounded in retrieved code, with file paths.
 
-## 🚀 Key Features
-- **Smart Repository Crawling:** Recursively traverses GitHub file trees using the GitHub API to extract and clean Java source logic.
-- **Vectorized Semantic Search:** Implements PGVector to store high-dimensional code embeddings, enabling the AI to "find" relevant logic without keyword matching.
-- **Context-Aware AI Chat:** Integrated with LangChain4j to provide a "Senior Architect" experience, answering complex questions about code flow, design patterns, and logic.
-- **Real-time Markdown Rendering:** A clean web interface that styles AI responses with bold text, code blocks, and bullet points for better readability.
+> **Works for every repo/language** — Java, Python, JavaScript/TypeScript, Go, Rust, C/C++, C#, Ruby, PHP, Swift, HTML/CSS, Kotlin, shell, config/docs, etc. Binaries and vendored dirs are skipped automatically.
 
-## 🛠️ Technologies Used
-| Category | Technologies |
+## 🚀 What it does
+- Crawls a GitHub repo via the GitHub API (accepts `owner/repo` or full URL, including private repos with a token).
+- Indexes text files (`.java`, `.xml`, `.properties`, `.md`, `.kt`, `.py`, …) — with size/file-count guards.
+- Embeds chunks with Gemini, stores in PostgreSQL+pgvector, retrieves top matches (`minScore 0.6`), and prompts Gemini as a Senior Architect: "answer only from context, cite file paths, else say you don't know."
+- Modern dark UI (Bootstrap 5 + Thymeleaf): hero input with client validation, loading states, chat with Markdown.
+
+## 🛠️ Stack
+| Layer | Tech |
 |---|---|
-| Core | Java 21, Spring Boot 3.x, Maven |
-| AI Orchestration | LangChain4j, Google Gemini Pro (LLM) |
-| Vector Database | PostgreSQL with PGVector extension |
-| External APIs | GitHub API (org.kohsuke.github) |
-| Frontend | Thymeleaf, Bootstrap 5, Marked.js (Markdown parsing) |
+| Core | Java 21+, Spring Boot 3.5, Maven |
+| AI | LangChain4j 1.12.2, Gemini chat (`gemini-2.5-flash-lite`), Gemini embeddings (`gemini-embedding-001`) |
+| Vector DB | PostgreSQL + pgvector (Docker, `ankane/pgvector`) |
+| GitHub | `org.kohsuke:github-api` 1.330 |
+| UI | Thymeleaf + Bootstrap 5 + Marked/DOMPurify/highlight.js + vanilla fetch JS (no-reload chat) |
 
-## 🏗️ Technical Architecture (The RAG Pipeline)
-1. **Ingestion:** The CrawlerService fetches `.java` files and passes them to the IngestionService.
-2. **Embedding:** Code is split into TextSegments and converted into vectors using Gemini's embedding model.
-3. **Storage:** Vectors are persisted in a PGVector store.
-4. **Retrieval:** When a user asks a question, the system retrieves the most mathematically similar code segments.
-5. **Augmentation:** The AI Agent receives the user query + the retrieved code context to generate a hallucination-free answer.
+## 🏗️ Pipeline
+1. **Ingest:** `CrawlerService` clears old vectors, walks the tree, reads files, `IngestionService` splits (`500/50`) → embeds → stores (metadata: `file_path`).
+2. **Retrieve:** `EmbeddingStoreContentRetriever` embedded query → top matches.
+3. **Augment:** `RetrievalAugmentor` injects retrieved code into the `RepolensAgent` prompt (system prompt enforces grounding + file paths).
 
-## 📁 Project Structure
-- `com.S_aman.RepoLens.controller`: REST/Web endpoints for repository ingestion and AI chat.
-- `com.S_aman.RepoLens.service`
-  - `CrawlerService.java`: GitHub API integration and file tree traversal.
-  - `IngestionService.java`: Manages the vector database and text segmentation.
-- `com.S_aman.RepoLens.agent`: Contains the AiService interface for LangChain4j and Gemini communication.
+## ▶️ Run locally
+Prerequisites: JDK 21+, Docker, Gemini API key, GitHub PAT (optional for public repos, required for private).
 
-## 🚦 Getting Started
-### Prerequisites
-- JDK 21 or later
-- Docker (to run the PGVector/PostgreSQL container)
-- Google AI (Gemini) API Key
+```bash
+cp .env.example .env   # fill GEMINI_API_KEY, GITHUB_TOKEN
+docker compose up -d   # starts pgvector on host 5433 → container 5432
+docker exec pgvector psql -U repolens -d repolens -c "CREATE EXTENSION IF NOT EXISTS vector;"
+mvn clean test         # contextLoads should pass
+mvn spring-boot:run
+# open http://localhost:8080/api/
+```
 
-### Environment Configuration
-Create a `.env` file or set the following in your environment:
-
-- export GEMINI_API_KEY=your_gemini_key
-- export GITHUB_TOKEN=your_github_pat
-- export DB_URL=jdbc:postgresql://localhost:5432/vector_db
-
-### Running with Docker (Database)
-To get the vector store running quickly:
-
-- "docker run --name pgvector -e POSTGRES_PASSWORD=password -p 5432:5432 -d ankane/pgvector"
+Notes:
+- Defaults use host port **5433** to avoid clashing with a local Windows Postgres on 5432. Override with `DB_PORT`.
+- `.env` is gitignored. Never commit secrets.
+- First ingest downloads nothing big; embedding small repos takes ~1–2s/file.
 
 ## 📝 Usage
-- **Analyze:** Send a POST request with a GitHub URL (e.g., `SinghAmanPappu/Java-Console-Tasks`).**
-- **Ask:** Use the Chat UI to ask questions like:
-  - "How does the ATM simulation handle withdrawals?"
-  - "Summarize the relationship between the Controller and the Service."
-  - "Where is the database connection logic located?"
+1. Paste `owner/repo` → **Analyze Repository** (indexing runs synchronously; larger repos take longer).
+2. Ask questions, e.g. "How does the ATM simulation handle withdrawals?" or "Summarize the project structure."
+3. Health check: `GET /api/health` → `{"status":"UP","service":"RepoLens"}`.
+
+## 📁 Layout (relevant)
+- `src/main/java/com/S_aman/RepoLens/config/` — `GeminiConfig`, `GithubConfig`, `VectorConfig` (embedding model, pgvector store, retriever, augmentor)
+- `.../service/CrawlerService.java` — GitHub crawl + `normalizeRepoName`
+- `.../service/IngestionService.java` — split/embed/store
+- `.../Agent/RepolensAgent.java` — `@AiService` + RAG wiring
+- `.../Controller/RepoController.java` — web routes (`/api/`, `/api/Repository`, `/api/ask`, `/api/chat`)
+- `src/main/resources/templates/` — `index.html`, `chat.html`, `error.html`
