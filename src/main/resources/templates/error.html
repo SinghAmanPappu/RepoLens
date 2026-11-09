@@ -1,17 +1,42 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title>RepoLens | Error</title>
+<head>
+<meta charset="UTF-8">
+<title>RepoLens | Error</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body class="bg-light">
-<div class="container mt-5">
-  <div class="card shadow">
-    <div class="card-body text-center">
-      <h1 class="display-6">Something went wrong</h1>
+<body>
+<header class="container py-3">
+  <div class="d-flex justify-content-between align-items-center">
+    <a class="brand d-flex align-items-center gap-2 text-decoration-none" href="#">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+        <rect x="4" y="4" width="28" height="28" rx="6" stroke="var(--sepia-dark)" stroke-width="2.5" fill="var(--paper)"/>
+        <circle cx="16" cy="16" r="5" fill="var(--sepia)"/>
+        <path d="M16 11 L11 21 L21 21" stroke="var(--paper)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="20" y="26" width="12" height="6" rx="2" fill="var(--gold)"/>
+      </svg>
+      <span class="logo-text">RepoLens<span class="sub">Error</span></span>
+    </a>
+    <a th:href="@{/api/}" class="btn btn-outline-secondary btn-sm">← Back to Home</a>
+  </div>
+</header>
+
+<main class="container pb-5">
+  <div class="card h-100 d-flex flex-column justify-content-center">
+    <div class="card-body text-center p-5">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="64" height="64" mx-auto mb-3>
+        <rect x="4" y="4" width="36" height="36" rx="8" stroke="var(--sepia-dark)" stroke-width="2.5" fill="none"/>
+        <circle cx="24" cy="20" r="6" fill="var(--sepia)"/>
+        <path d="M24 15 L20 25 L28 25" stroke="var(--sepia-dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1 class="display-6 fw-bold">Something went wrong</h1>
       <p class="text-muted" th:text="${error} ?: 'Unexpected error. Please try again.'">Error</p>
-      <a class="btn btn-primary" th:href="@{/api/}">← Back to Home</a>
+      <a class="btn btn-grad" th:href="@{/api/}">← Back to Home</a>
     </div>
   </div>
-</div>
+</main>
 </body>
 </html>
