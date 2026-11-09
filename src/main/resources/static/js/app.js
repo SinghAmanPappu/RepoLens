@@ -107,8 +107,10 @@
           const next = [data.repo, ...recent.filter(x => x !== data.repo)].slice(0, 5);
           localStorage.setItem(lsRecent, JSON.stringify(next));
         } catch {}
+        // clear old chat history so messages don't mix across repos
+        try { localStorage.removeItem(lsKey); } catch {}
         // go to chat (interactive chat page) — small delay so user sees 100%
-        setTimeout(() => { window.location.href = '/api/ask'; }, 350);
+        setTimeout(() => { window.location.href = '/api/ask?repo=' + encodeURIComponent(data.repo); }, 350);
       } catch (err2) {
         toast((err2.message || 'Index failed') + ' — falling back to normal submit', 'error');
         // fallback: classic form POST (server redirects to /api/ask)

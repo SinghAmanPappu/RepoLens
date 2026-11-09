@@ -53,7 +53,10 @@ public class RepoController {
     }
 
     @GetMapping("/ask")
-    public String showChat(Model model) {
+    public String showChat(@RequestParam(required = false) String repo, Model model) {
+        if (repo != null && !repo.isBlank()) {
+            model.addAttribute("repo", repo);
+        }
         return "chat";
     }
 
